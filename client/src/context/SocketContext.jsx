@@ -3,7 +3,7 @@ import { io } from "socket.io-client";
 import { useAuth } from "./AuthContext";
 
 const SocketContext = createContext(null);
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:5000";
+const SOCKET_URL = "https://real-time-chat-application-knm5.onrender.com";
 
 export function SocketProvider({ children }) {
   const { user } = useAuth();
