@@ -40,7 +40,7 @@ export default function ChatWindow({
 
   const other = !isGroup
     ? conversation.participants.find(
-        (p) => p._id !== user._id
+        (p) => String(p._id) !== String(user._id)
       )
     : null;
 
@@ -62,7 +62,24 @@ export default function ChatWindow({
     setMessages([]);
 
     getMessages(conversation._id)
-      .then(setMessages)
+      .then((loadedMessages) => {
+        setMessages(loadedMessages);
+
+        // Mark existing received messages as read
+        if (socket) {
+          loadedMessages.forEach((msg) => {
+            if (
+              String(msg.sender?._id) !== String(user._id) &&
+              msg.status !== "read"
+            ) {
+              socket.emit("message:read", {
+                messageId: msg._id,
+                conversationId: conversation._id,
+              });
+            }
+          });
+        }
+      })
       .finally(() => setLoading(false));
 
     if (socket) {
@@ -70,7 +87,7 @@ export default function ChatWindow({
         conversationId: conversation._id,
       });
     }
-  }, [conversation._id, socket]);
+  }, [conversation._id, socket, user._id]);
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -88,9 +105,10 @@ export default function ChatWindow({
 
       setMessages((prev) => [...prev, msg]);
 
+      // If message is received from another user,
+      // mark it as delivered and read
       if (
-        String(msg.sender._id) !==
-        String(user._id)
+        String(msg.sender?._id) !== String(user._id)
       ) {
         socket.emit("message:delivered", {
           messageId: msg._id,
@@ -122,8 +140,9 @@ export default function ChatWindow({
     }) => {
       if (
         conversationId !== conversation._id
-      )
+      ) {
         return;
+      }
 
       setMessages((prev) =>
         prev.map((m) =>
@@ -145,13 +164,14 @@ export default function ChatWindow({
     }) => {
       if (
         conversationId !== conversation._id ||
-        userId === user._id
-      )
+        String(userId) === String(user._id)
+      ) {
         return;
+      }
 
       const person =
         conversation.participants.find(
-          (p) => p._id === userId
+          (p) => String(p._id) === String(userId)
         );
 
       if (!person) return;
@@ -169,19 +189,20 @@ export default function ChatWindow({
     }) => {
       if (
         conversationId !== conversation._id
-      )
+      ) {
         return;
+      }
 
       const person =
         conversation.participants.find(
-          (p) => p._id === userId
+          (p) => String(p._id) === String(userId)
         );
 
       if (!person) return;
 
       setTypingUsers((prev) =>
         prev.filter(
-          (n) => n !== person.name
+          (name) => name !== person.name
         )
       );
     };
@@ -263,9 +284,7 @@ export default function ChatWindow({
     );
   };
 
-  const handleDelete = async (
-    messageId
-  ) => {
+  const handleDelete = async (messageId) => {
     try {
       if (socket) {
         socket.emit(
@@ -273,9 +292,7 @@ export default function ChatWindow({
           { messageId }
         );
       } else {
-        await apiDeleteMessage(
-          messageId
-        );
+        await apiDeleteMessage(messageId);
       }
 
       setMessages((prev) =>
@@ -417,9 +434,7 @@ export default function ChatWindow({
                   String(user._id)
                 }
                 showSender={isGroup}
-                onDelete={
-                  handleDelete
-                }
+                onDelete={handleDelete}
               />
             </div>
           );
@@ -444,9 +459,7 @@ export default function ChatWindow({
       {/* Group Information */}
       {showGroupInfo && (
         <GroupInfoPanel
-          conversation={
-            conversation
-          }
+          conversation={conversation}
           onClose={() =>
             setShowGroupInfo(false)
           }
