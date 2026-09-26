@@ -29,6 +29,11 @@ export function SocketProvider({ children }) {
     socket.on("connect", () => setConnected(true));
     socket.on("disconnect", () => setConnected(false));
 
+    // 👇 NAYA LISTENER: connect hote hi poori online users list milegi
+    socket.on("users:online-list", (userIds) => {
+      setOnlineUserIds(new Set(userIds));
+    });
+
     socket.on("user:online", ({ userId }) => {
       setOnlineUserIds((prev) => new Set(prev).add(userId));
     });

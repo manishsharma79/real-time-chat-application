@@ -30,6 +30,9 @@ function initSocket(io) {
 
     socket.join(`user:${userId}`);
 
+    // 👇 NAYI LINE: connect hote hi is user ko currently online sabhi users ki list bhejo
+    socket.emit("users:online-list", Array.from(onlineUsers.keys()));
+
     // Join all conversation rooms this user is part of
     const conversations = await Conversation.find({ participants: userId }).select("_id");
     conversations.forEach((c) => socket.join(`conversation:${c._id}`));
